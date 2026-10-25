@@ -830,11 +830,11 @@ async function mpEnter(code,host){NET.msg='';try{const rm=await getRoomApi();if(
  catch(e){NET.msg='Could not connect: '+((e&&e.message)||'unknown error');NET.room=null}showMenu('Friendly')}
 function mpLeave(){const r=NET.room;NET.room=null;NET.live=false;NET.host=false;NET.hostPeer=null;NET.rost=[];NET.pending=false;if(r)r.leave().catch(()=>{});bots.forEach(b=>{b.isR=0;b.off=0;b.tx=null});setFlip(false);SIDE=1;showMenu('Friendly')}
 function hostRoster(){if(NET.live)return;const ord=NET.order.filter((p,i,a)=>a.indexOf(p)==i).slice(0,8),A=[5,4,3,2,1,0],B=[12,11,10,9,8,7,6],ro=[];ord.forEach((p,i)=>{if(p==NET.me)ro.unshift([p,1,-1]);else ro.push([p,0,-2])});
- ro.forEach((r,i)=>{if(r[2]==-1)return;const sd=i%2==0?1:-1;r[1]=sd;r[2]=sd==1?A.shift():B.shift()});NET.rost=ro;if(NET.room)NET.room.presence({rost:ro,map:nm,seed:NET.seed})}
+ ro.forEach((r,i)=>{if(r[2]==-1)return;const sd=i%2==0?1:-1;r[1]=sd;r[2]=sd==1?A.shift():B.shift()});NET.rost=ro;const sg=JSON.stringify(ro);if(sg===NET.lastRost)return;NET.lastRost=sg;if(NET.room)NET.room.presence({rost:ro,map:nm,seed:NET.seed})}
 function onPeersMP(ch){NET.peers=ch.peers;const me=ch.peers.find(p=>p.isMe&&p.sameTab);if(me)NET.me=me.peer;
- if(NET.host){if(NET.me&&!NET.order.includes(NET.me))NET.order.unshift(NET.me);for(const p of ch.joined)if(!p.isMe&&!NET.order.includes(p.peer))NET.order.push(p.peer);for(const p of ch.left){const i=NET.order.indexOf(p.peer);if(i>=0)NET.order.splice(i,1)}hostRoster()}
+ if(NET.host){if(NET.me&&!NET.order.includes(NET.me))NET.order.unshift(NET.me);for(const p of ch.joined)if(!p.isMe&&!NET.order.includes(p.peer))NET.order.push(p.peer);for(const p of ch.left){const i=NET.order.indexOf(p.peer);if(i>=0)NET.order.splice(i,1)}if(ch.joined.length||ch.left.length||!NET.rost.length)hostRoster()}
  else{const h=ch.peers.find(p=>p.presence&&p.presence.host==1&&!p.isMe);if(h){NET.hostPeer=h.peer;const pr=h.presence;NET.rost=pr.rost||[];if(pr.go>NET.seenGo){NET.seenGo=pr.go;NET.pending=true;NET.seed=pr.seed;nm=pr.map;toast('The host started a match. Open Friendly and join!','#7ac8ff')}}}
- if(curTab=='Friendly'&&$('ov').style.display!='none'&&!(document.activeElement&&document.activeElement.id=='mpcode'))showMenu('Friendly')}
+ {const sg=JSON.stringify([NET.rost,NET.pending,ch.peers.length,!!NET.hostPeer]);if(sg!==NET.lastSig){NET.lastSig=sg;if(curTab=='Friendly'&&$('ov').style.display!='none'&&!(document.activeElement&&document.activeElement.id=='mpcode'))showMenu('Friendly')}}}
 function mpStart(){NET.live=false;fresh=true;NET.cfg=1;deploy()}
 function mpHostStart(){if(!NET.host||!NET.room)return;NET.seed=Math.random()*1e9|0;nm=Math.random()*MAPS.length|0;hostRoster();NET.go++;NET.room.presence({go:NET.go,seed:NET.seed,map:nm,rost:NET.rost});mpStart()}
 function mpGo(){if(!NET.rost.find(r=>r[0]==NET.me)){toast('That match started without you. Wait for the next one.');NET.pending=false;return showMenu('Friendly')}NET.pending=false;mpStart()}
@@ -847,7 +847,7 @@ function mpPull(){for(const p of NET.peers){if(p.isMe)continue;const pr=p.presen
   const t=pr.t;if(t){tk[0]=SIDE==1?t[0]:t[1];tk[1]=SIDE==1?t[1]:t[0];tl=t[2]/10;pr_=SIDE==1?t[3]/100:-t[3]/100}}}}
 const _ht5=hudTick;hudTick=function(){_ht5();if(!NET.room)return;const now=performance.now();if(over&&NET.live)NET.live=false;
  if(NET.live){mpPull();if(pr_!==undefined){pr=pr_;pr_=undefined}}
- if(now-NET.ls>66){NET.ls=now;const patch={n:1};if(NET.live||NET.host||true){patch.s=[+P.x.toFixed(2),+P.y.toFixed(2),+P.z.toFixed(2),+P.yaw.toFixed(2),+P.pitch.toFixed(2),Math.round(P.hp),(P.dead?1:0)|(P.cr?2:0)|(P.sl>0?4:0),NET.sh,P.wp.k]}
+ if(NET.live&&now-NET.ls>66){NET.ls=now;const patch={n:1};if(NET.live||NET.host||true){patch.s=[+P.x.toFixed(2),+P.y.toFixed(2),+P.z.toFixed(2),+P.yaw.toFixed(2),+P.pitch.toFixed(2),Math.round(P.hp),(P.dead?1:0)|(P.cr?2:0)|(P.sl>0?4:0),NET.sh,P.wp.k]}
   if(NET.host&&NET.live){const B=[];for(let j=0;j<bots.length;j++){const b=bots[j];if(b.isR||b.off){B.push(0,0,0,0,0,8,0,0)}else B.push(Math.round(b.x*10),Math.round(b.y*10),Math.round(b.z*10),Math.round(b.yaw*100),Math.round(b.hp),(b.dead?1:0)|(b.sl>0?2:0)|(now-(b.lastShot||0)<130?4:0),Math.round((b.jh||0)*100),0)}patch.B=B;patch.t=[tk[0],tk[1],Math.round(tl*10),Math.round(pr*100)]}
   NET.room.presence(patch).catch(()=>{})}};
 let pr_;
